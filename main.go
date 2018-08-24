@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/manifoldco/promptui"
 	"html/template"
 	"os"
 	"strings"
@@ -32,26 +33,80 @@ func rename(f *FileMetaData) {
 	}
 }
 
+func promptForQuality() string {
+	templates := promptui.PromptTemplates{
+		Prompt:  ` + {{ . }}`,
+		Valid:   ` {{ "✔" | green | bold }} {{ "Quality" | bold }}: {{ . }}`,
+		Success: ` {{ "✔" | green | bold }} {{ "Quality" | bold }}: {{ . }}`,
+	}
+	prompt := promptui.Prompt{
+		Label:     "Unknown quality, please provide one: ",
+		Templates: &templates,
+	}
+
+	res, err := prompt.Run()
+	if err != nil {
+		fmt.Printf("Prompt failed %v\n", err)
+		os.Exit(1)
+	}
+	return res
+}
+
+func promptForSource() string {
+	templates := promptui.SelectTemplates{
+		Active:   ` + {{ . | cyan | bold }}`,
+		Inactive: `   {{ .| cyan }}`,
+		Selected: ` {{ "✔" | green | bold }} {{ "Selected source" | bold }}: {{ . | cyan }}`,
+	}
+
+	prompt := promptui.Select{
+		Label:     "Unknown source, select one from list: ",
+		Items:     sourcesSet,
+		Templates: &templates,
+	}
+
+	idx, _, err := prompt.Run()
+	if err != nil {
+		fmt.Printf("Prompt failed %v\n", err)
+		os.Exit(1)
+	}
+	return sourcesSet[idx]
+}
+
 func prepareFile(t *TVDB, filepath string) *FileMetaData {
+	fmt.Printf(" * Peparing file '%s'...\n", filepath)
 	fm := NewFileMetaData(filepath)
+
+	if fm.SeriesName == "" {
+		fmt.Println("[!] Could not detect series name from file.")
+		return nil
+	}
 
 	series, err := t.FindSeries(fm.SeriesName)
 	if err != nil {
+		fmt.Printf("[!] Unable to query TVDB: %s\n", err)
 		return nil
 	}
 	if series == nil {
-		fmt.Printf("Unable to find a TVDB series matching '%s'.\n", fm.SeriesName)
+		fmt.Printf("[!] Unable to find a TVDB series matching '%s'.\n", fm.SeriesName)
 		return nil
 	}
 	fm.SeriesName = series.SeriesName
 
 	episode, err := t.FindEpisode(series.ID, fm.SeasonNumber, fm.EpisodeNumber)
 	if err != nil {
-		fmt.Printf("Unable to retrieve episode information: %s", err)
+		fmt.Printf("[!] Unable to retrieve episode information: %s", err)
 		return nil
 	}
 	fm.Title = episode.EpisodeName
 
+	if fm.Source == "" {
+		fm.Source = promptForSource()
+	}
+
+	if fm.Quality == "" {
+		fm.Quality = promptForQuality()
+	}
 	return &fm
 }
 

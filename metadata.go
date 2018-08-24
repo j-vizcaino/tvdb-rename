@@ -7,6 +7,35 @@ import (
 	"strings"
 )
 
+var (
+	sourcesMap map[string]string
+	sourcesSet []string
+)
+
+func init() {
+	sourcesMap = map[string]string{
+		"DVD":    "DVD",
+		"DVDRip": "DVD",
+		"HDTV":   "HDTV",
+		"SDTV":   "SDTV",
+		"BDRip":  "BluRay",
+		"BluRay": "BluRay",
+		"WEB":    "WEB",
+		"WEB-DL": "WEB",
+		"WEBDL":  "WEB",
+		"WEBRip": "WEB",
+	}
+
+	m := make(map[string]interface{})
+	for _, v := range sourcesMap {
+		m[v] = nil
+	}
+	sourcesSet = make([]string, 0, len(m))
+	for v, _ := range m {
+		sourcesSet = append(sourcesSet, v)
+	}
+}
+
 type FileMetaData struct {
 	Path      string
 	Filename  string
@@ -76,22 +105,9 @@ func findSeasonAndEpisode(elts []string) (int, int, int) {
 	return -1, -1, -1
 }
 
-var sourcesList = map[string]string{
-	"DVD":    "DVD",
-	"DVDRip": "DVD",
-	"HDTV":   "HDTV",
-	"SDTV":   "SDTV",
-	"BDRip":  "BluRay",
-	"BluRay": "BluRay",
-	"WEB":    "WEB",
-	"WEB-DL": "WEB",
-	"WEBDL":  "WEB",
-	"WEBRip": "WEB",
-}
-
 func findSource(elts []string) string {
 	for _, elt := range elts {
-		for source, finalSource := range sourcesList {
+		for source, finalSource := range sourcesMap {
 			if strings.EqualFold(elt, source) {
 				return finalSource
 			}
