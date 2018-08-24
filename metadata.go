@@ -22,7 +22,7 @@ type EpisodeMetaData struct {
 	EpisodeNumber int
 }
 
-func NewFileMetaData(filepath string) (FileMetaData, error) {
+func NewFileMetaData(filepath string) FileMetaData {
 	filename := path.Base(filepath)
 	ext := path.Ext(filename)
 	file := filename[0 : len(filename)-len(ext)]
@@ -31,7 +31,7 @@ func NewFileMetaData(filepath string) (FileMetaData, error) {
 		Extension:       ext,
 		EpisodeMetaData: NewEpisodeMetaData(file),
 	}
-	return fm, nil
+	return fm
 }
 
 func NewEpisodeMetaData(s string) EpisodeMetaData {
@@ -91,7 +91,6 @@ func findSource(elts []string) string {
 			if strings.EqualFold(elt, source) {
 				return finalSource
 			}
-
 		}
 	}
 	return ""
