@@ -8,7 +8,9 @@ import (
 )
 
 type FileMetaData struct {
+	Path      string
 	Filename  string
+	Directory string
 	Extension string
 	EpisodeMetaData
 }
@@ -27,8 +29,10 @@ func NewFileMetaData(filepath string) FileMetaData {
 	ext := path.Ext(filename)
 	file := filename[0 : len(filename)-len(ext)]
 	fm := FileMetaData{
+		Path:            filepath,
 		Filename:        filename,
 		Extension:       ext,
+		Directory:       path.Dir(filepath),
 		EpisodeMetaData: NewEpisodeMetaData(file),
 	}
 	return fm
