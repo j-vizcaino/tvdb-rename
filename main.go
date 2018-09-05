@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/manifoldco/promptui"
 	"html/template"
@@ -11,6 +12,11 @@ import (
 var (
 	filenameFormat   = `{{ .SeriesName }} - S{{ .SeasonNumber | printf "%02d" }}E{{ .EpisodeNumber | printf "%02d" }} - {{ .Title }} {{.Source }}-{{ .Quality }}`
 	filenameTemplate = template.Must(template.New("filename").Parse(filenameFormat))
+
+	OverridenSeriesID string
+	FallbackQuality   string
+	FallbackSource    string
+	QueryLanguage     string
 )
 
 func rename(f *FileMetaData) {
@@ -33,7 +39,11 @@ func rename(f *FileMetaData) {
 	}
 }
 
-func promptForQuality() string {
+func getQualityFallback() string {
+	if FallbackQuality != "" {
+		return FallbackQuality
+	}
+
 	templates := promptui.PromptTemplates{
 		Prompt:  ` + {{ . }}`,
 		Valid:   ` {{ "✔" | green | bold }} {{ "Quality" | bold }}: {{ . }}`,
@@ -52,7 +62,11 @@ func promptForQuality() string {
 	return res
 }
 
-func promptForSource() string {
+func getSourceFallback() string {
+	if FallbackSource != "" {
+		return FallbackSource
+	}
+
 	templates := promptui.SelectTemplates{
 		Active:   ` + {{ . | cyan | bold }}`,
 		Inactive: `   {{ .| cyan }}`,
@@ -101,23 +115,29 @@ func prepareFile(t *TVDB, filepath string) *FileMetaData {
 	fm.Title = episode.EpisodeName
 
 	if fm.Source == "" {
-		fm.Source = promptForSource()
+		fm.Source = getSourceFallback()
 	}
 
 	if fm.Quality == "" {
-		fm.Quality = promptForQuality()
+		fm.Quality = getQualityFallback()
 	}
 	return &fm
 }
 
 func main() {
-	t, err := NewTVDB("en")
+	flag.StringVar(&FallbackQuality, "quality", "", "Fallback value for quality")
+	flag.StringVar(&FallbackSource, "source", "", "Fallback value for source")
+	flag.StringVar(&QueryLanguage, "lang", "en", "TVDB query language")
+	flag.StringVar(&OverridenSeriesID, "series-id", "", "Override guessed TVDB series ID. Should match tt[0-9]{8}")
+	flag.Parse()
+
+	t, err := NewTVDB(QueryLanguage)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	for _, inFile := range os.Args[1:] {
+	for _, inFile := range flag.Args() {
 		f := prepareFile(t, inFile)
 		if f != nil {
 			rename(f)
